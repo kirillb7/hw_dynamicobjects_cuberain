@@ -12,28 +12,9 @@ public class Cube : MonoBehaviour
     private bool _isExpiring = false;
     private Renderer _renderer;
 
-    public Rigidbody Rigidbody { get; private set; }
-
     public event Action<Cube> Expired;
 
-    private void Awake()
-    {
-        Rigidbody = GetComponent<Rigidbody>();
-        _renderer = GetComponent<Renderer>();
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (_isExpiring == false)
-        {
-            if (collision.gameObject.GetComponent<Platform>())
-            {
-                _isExpiring = true;
-                UpdateColor();
-                StartCoroutine(Expire());
-            }
-        }
-    }
+    public Rigidbody Rigidbody { get; private set; }
 
     private IEnumerator Expire()
     {
@@ -48,6 +29,25 @@ public class Cube : MonoBehaviour
         }
 
         Expired?.Invoke(this);
+    }
+
+    private void Awake()
+    {
+        Rigidbody = GetComponent<Rigidbody>();
+        _renderer = GetComponent<Renderer>();
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (_isExpiring == false)
+        {
+            if (collision.gameObject.TryGetComponent<Platform>(out _))
+            {
+                _isExpiring = true;
+                UpdateColor();
+                StartCoroutine(Expire());
+            }
+        }
     }
 
     private void UpdateColor()

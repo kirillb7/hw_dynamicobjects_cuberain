@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -15,7 +15,25 @@ public class Spawner : MonoBehaviour
     [SerializeField] private int _poolMaxSize = 10;
 
     private ObjectPool<Cube> _pool;
-    private List<Cube> _subscribedCubes = new List<Cube>();
+    private bool _isRaining = true;
+
+    private IEnumerator RainCubes()
+    {
+        float elapsedTime = 0;
+
+        while (_isRaining)
+        {
+            elapsedTime += Time.deltaTime;
+
+            if (elapsedTime >= _repeatRate)
+            {
+                elapsedTime = 0;
+                GetCube();
+            }
+
+            yield return null;
+        }
+    }
 
     private void Awake()
     {
@@ -29,49 +47,28 @@ public class Spawner : MonoBehaviour
             maxSize: _poolMaxSize);
     }
 
-    private void OnDisable()
-    {
-        for (int i = _subscribedCubes.Count; i > 0; i--)
-        {
-            UnsubscribeFromCube(_subscribedCubes[i - 1]);
-        }
-    }
-
     private void ActionOnGet(Cube cube)
     {
         cube.transform.position = new Vector3(Random.Range(_minSpawnX, _maxSpawnX), _spawnY, Random.Range(_minSpawnZ, _maxSpawnZ));
         cube.Rigidbody.velocity = Vector3.zero;
         cube.gameObject.SetActive(true);
         cube.ResetExpiration();
-
-        SubscribeToCube(cube);
+        cube.Expired += _pool.Release;
     }
 
     private void ActionOnRelease(Cube cube)
     {
-        UnsubscribeFromCube(cube);
+        cube.Expired -= _pool.Release;
         cube.gameObject.SetActive(false);
     }
 
     private void Start()
     {
-        InvokeRepeating(nameof(GetCube), 0.0f, _repeatRate);
+        StartCoroutine(RainCubes());
     }
 
     private void GetCube()
     {
         _pool.Get();
-    }
-
-    private void SubscribeToCube(Cube cube)
-    {
-        cube.Expired += _pool.Release;
-        _subscribedCubes.Add(cube);
-    }
-
-    private void UnsubscribeFromCube(Cube cube)
-    {
-        cube.Expired -= _pool.Release;
-        _subscribedCubes.Remove(cube);
     }
 }
