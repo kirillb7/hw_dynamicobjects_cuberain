@@ -17,6 +17,43 @@ public class Spawner : MonoBehaviour
     private ObjectPool<Cube> _pool;
     private bool _isRaining = true;
 
+    private void Awake()
+    {
+        _pool = new ObjectPool<Cube>(
+            createFunc: () => Instantiate(_prefab),
+            actionOnGet: (cube) => ActivateCube(cube),
+            actionOnRelease: (cube) => DeactivateCube(cube),
+            actionOnDestroy: (cube) => Destroy(cube),
+            collectionCheck: true,
+            defaultCapacity: _poolCapacity,
+            maxSize: _poolMaxSize);
+    }
+
+    private void Start()
+    {
+        StartCoroutine(RainCubes());
+    }
+
+    private void ActivateCube(Cube cube)
+    {
+        cube.transform.position = new Vector3(Random.Range(_minSpawnX, _maxSpawnX), _spawnY, Random.Range(_minSpawnZ, _maxSpawnZ));
+        cube.Rigidbody.velocity = Vector3.zero;
+        cube.gameObject.SetActive(true);
+        cube.ResetExpiration();
+        cube.Expired += _pool.Release;
+    }
+
+    private void DeactivateCube(Cube cube)
+    {
+        cube.Expired -= _pool.Release;
+        cube.gameObject.SetActive(false);
+    }
+
+    private void GetCube()
+    {
+        _pool.Get();
+    }
+
     private IEnumerator RainCubes()
     {
         float elapsedTime = 0;
@@ -33,42 +70,5 @@ public class Spawner : MonoBehaviour
 
             yield return null;
         }
-    }
-
-    private void Awake()
-    {
-        _pool = new ObjectPool<Cube>(
-            createFunc: () => Instantiate(_prefab),
-            actionOnGet: (cube) => ActionOnGet(cube),
-            actionOnRelease: (cube) => ActionOnRelease(cube),
-            actionOnDestroy: (cube) => Destroy(cube),
-            collectionCheck: true,
-            defaultCapacity: _poolCapacity,
-            maxSize: _poolMaxSize);
-    }
-
-    private void ActionOnGet(Cube cube)
-    {
-        cube.transform.position = new Vector3(Random.Range(_minSpawnX, _maxSpawnX), _spawnY, Random.Range(_minSpawnZ, _maxSpawnZ));
-        cube.Rigidbody.velocity = Vector3.zero;
-        cube.gameObject.SetActive(true);
-        cube.ResetExpiration();
-        cube.Expired += _pool.Release;
-    }
-
-    private void ActionOnRelease(Cube cube)
-    {
-        cube.Expired -= _pool.Release;
-        cube.gameObject.SetActive(false);
-    }
-
-    private void Start()
-    {
-        StartCoroutine(RainCubes());
-    }
-
-    private void GetCube()
-    {
-        _pool.Get();
     }
 }

@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Renderer))]
 public class Cube : MonoBehaviour
 {
     [SerializeField] private float _minExpirationTime = 2;
@@ -15,21 +17,6 @@ public class Cube : MonoBehaviour
     public event Action<Cube> Expired;
 
     public Rigidbody Rigidbody { get; private set; }
-
-    private IEnumerator Expire()
-    {
-        float expirationTime = UnityEngine.Random.Range(_minExpirationTime, _maxExpirationTime);
-        float elapsedTime = 0;
-
-        while (elapsedTime < expirationTime)
-        {
-            elapsedTime += Time.deltaTime;
-
-            yield return null;
-        }
-
-        Expired?.Invoke(this);
-    }
 
     private void Awake()
     {
@@ -45,9 +32,15 @@ public class Cube : MonoBehaviour
             {
                 _isExpiring = true;
                 UpdateColor();
-                StartCoroutine(Expire());
+                Invoke(nameof(Expire), UnityEngine.Random.Range(_minExpirationTime, _maxExpirationTime));
             }
         }
+    }
+
+    public void ResetExpiration()
+    {
+        _isExpiring = false;
+        UpdateColor();
     }
 
     private void UpdateColor()
@@ -62,9 +55,8 @@ public class Cube : MonoBehaviour
         }
     }
 
-    public void ResetExpiration()
+    private void Expire()
     {
-        _isExpiring = false;
-        UpdateColor();
+        Expired?.Invoke(this);
     }
 }
